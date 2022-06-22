@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include "GL/glew.h"
+#include "GLES3/gl3.h"
 
 class Shader
 {

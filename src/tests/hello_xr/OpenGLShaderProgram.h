@@ -1,6 +1,6 @@
 #pragma once
 
-#include <GL/glew.h>
+#include <GLES3/gl3.h>
 #include "Shader.h"
 
 struct OpenGLShaderProgram

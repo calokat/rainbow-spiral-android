@@ -6,6 +6,7 @@
 #include "OpenGLESContext.h"
 #endif
 #include "IPlatform.h"
+#include "OpenGLAndroidContext.h"
 
 class OpenGLAPI : public IGraphicsAPI
 {

@@ -43,7 +43,7 @@ void Shader::Compile()
 		glGetShaderInfoLog(id, length, 0, log);
 		log[length - 1] = '\n';
 		log[length] = '\0';
-		printf(log);
+		printf("%s", log);
 		glDeleteShader(id);
 		delete[] log;
 

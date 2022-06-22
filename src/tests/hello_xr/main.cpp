@@ -6,10 +6,13 @@
 #include "common.h"
 #include "options.h"
 #include "platformdata.h"
-#include "platformplugin.h"
-#include "graphicsplugin.h"
-#include "openxr_program.h"
-
+//#include "platformplugin.h"
+//#include "graphicsplugin.h"
+//#include "openxr_program.h"
+#include "OpenXrApi.h"
+#include "AndroidPlatform.h"
+#include "OpenGLAndroidContext.h"
+#include "OpenGLAPI.h"
 #if defined(_WIN32)
 // Favor the high performance NVIDIA or AMD GPUs
 extern "C" {
@@ -25,27 +28,27 @@ namespace {
 #ifdef XR_USE_PLATFORM_ANDROID
 void ShowHelp() { Log::Write(Log::Level::Info, "adb shell setprop debug.xr.graphicsPlugin OpenGLES|Vulkan"); }
 
-bool UpdateOptionsFromSystemProperties(Options& options) {
-#if defined(DEFAULT_GRAPHICS_PLUGIN_OPENGLES)
-    options.GraphicsPlugin = "OpenGLES";
-#elif defined(DEFAULT_GRAPHICS_PLUGIN_VULKAN)
-    options.GraphicsPlugin = "Vulkan";
-#endif
-
-    char value[PROP_VALUE_MAX] = {};
-    if (__system_property_get("debug.xr.graphicsPlugin", value) != 0) {
-        options.GraphicsPlugin = value;
-    }
-
-    // Check for required parameters.
-    if (options.GraphicsPlugin.empty()) {
-        Log::Write(Log::Level::Error, "GraphicsPlugin parameter is required");
-        ShowHelp();
-        return false;
-    }
-
-    return true;
-}
+//bool UpdateOptionsFromSystemProperties(Options& options) {
+//#if defined(DEFAULT_GRAPHICS_PLUGIN_OPENGLES)
+//    options.GraphicsPlugin = "OpenGLES";
+//#elif defined(DEFAULT_GRAPHICS_PLUGIN_VULKAN)
+//    options.GraphicsPlugin = "Vulkan";
+//#endif
+//
+//    char value[PROP_VALUE_MAX] = {};
+//    if (__system_property_get("debug.xr.graphicsPlugin", value) != 0) {
+//        options.GraphicsPlugin = value;
+//    }
+//
+//    // Check for required parameters.
+//    if (options.GraphicsPlugin.empty()) {
+//        Log::Write(Log::Level::Error, "GraphicsPlugin parameter is required");
+//        ShowHelp();
+//        return false;
+//    }
+//
+//    return true;
+//}
 #else
 void ShowHelp() {
     // TODO: Improve/update when things are more settled.
@@ -179,25 +182,25 @@ void android_main(struct android_app* app) {
         app->userData = &appState;
         app->onAppCmd = app_handle_cmd;
 
-        std::shared_ptr<Options> options = std::make_shared<Options>();
-        if (!UpdateOptionsFromSystemProperties(*options)) {
-            return;
-        }
+//        std::shared_ptr<Options> options = std::make_shared<Options>();
+//        if (!UpdateOptionsFromSystemProperties(*options)) {
+//            return;
+//        }
 
         std::shared_ptr<PlatformData> data = std::make_shared<PlatformData>();
         data->applicationVM = app->activity->vm;
         data->applicationActivity = app->activity->clazz;
 
-        bool requestRestart = false;
-        bool exitRenderLoop = false;
+//        bool requestRestart = false;
+//        bool exitRenderLoop = false;
 
         // Create platform-specific implementation.
-        std::shared_ptr<IPlatformPlugin> platformPlugin = CreatePlatformPlugin(options, data);
+//        std::shared_ptr<IPlatformPlugin> platformPlugin = CreatePlatformPlugin(options, data);
         // Create graphics API implementation.
-        std::shared_ptr<IGraphicsPlugin> graphicsPlugin = CreateGraphicsPlugin(options, platformPlugin);
+//        std::shared_ptr<IGraphicsPlugin> graphicsPlugin = CreateGraphicsPlugin(options, platformPlugin);
 
         // Initialize the OpenXR program.
-        std::shared_ptr<IOpenXrProgram> program = CreateOpenXrProgram(options, platformPlugin, graphicsPlugin);
+//        std::shared_ptr<IOpenXrProgram> program = CreateOpenXrProgram(options, platformPlugin, graphicsPlugin);
 
         // Initialize the loader for this platform
         PFN_xrInitializeLoaderKHR initializeLoader = nullptr;
@@ -212,40 +215,45 @@ void android_main(struct android_app* app) {
             initializeLoader((const XrLoaderInitInfoBaseHeaderKHR*)&loaderInitInfoAndroid);
         }
 
-        program->CreateInstance();
-        program->InitializeSystem();
-        program->InitializeSession();
-        program->CreateSwapchains();
+        AndroidPlatform platform(app->window, app->activity->assetManager);
+        OpenGLAndroidContext glCtx = OpenGLAndroidContext(platform.GetDisplay(), platform.GetSurface());
+        OpenGLAPI glApi(glCtx);
+        OpenXrApi xr(platform, glApi, PE::GraphicsAPI::OpenGL);
 
-        while (app->destroyRequested == 0) {
-            // Read all pending events.
-            for (;;) {
-                int events;
-                struct android_poll_source* source;
-                // If the timeout is zero, returns immediately without blocking.
-                // If the timeout is negative, waits indefinitely until an event appears.
-                const int timeoutMilliseconds =
-                    (!appState.Resumed && !program->IsSessionRunning() && app->destroyRequested == 0) ? -1 : 0;
-                if (ALooper_pollAll(timeoutMilliseconds, nullptr, &events, (void**)&source) < 0) {
-                    break;
-                }
+//        program->CreateInstance();
+//        program->InitializeSystem();
+//        program->InitializeSession();
+//        program->CreateSwapchains();
 
-                // Process this event.
-                if (source != nullptr) {
-                    source->process(app, source);
-                }
-            }
-
-            program->PollEvents(&exitRenderLoop, &requestRestart);
-            if (!program->IsSessionRunning()) {
-                // Throttle loop since xrWaitFrame won't be called.
-                std::this_thread::sleep_for(std::chrono::milliseconds(250));
-                continue;
-            }
-
-            program->PollActions();
-            program->RenderFrame();
-        }
+//        while (app->destroyRequested == 0) {
+//            // Read all pending events.
+//            for (;;) {
+//                int events;
+//                struct android_poll_source* source;
+//                // If the timeout is zero, returns immediately without blocking.
+//                // If the timeout is negative, waits indefinitely until an event appears.
+//                const int timeoutMilliseconds =
+//                    (!appState.Resumed && !program->IsSessionRunning() && app->destroyRequested == 0) ? -1 : 0;
+//                if (ALooper_pollAll(timeoutMilliseconds, nullptr, &events, (void**)&source) < 0) {
+//                    break;
+//                }
+//
+//                // Process this event.
+//                if (source != nullptr) {
+//                    source->process(app, source);
+//                }
+//            }
+//
+//            program->PollEvents(&exitRenderLoop, &requestRestart);
+//            if (!program->IsSessionRunning()) {
+//                // Throttle loop since xrWaitFrame won't be called.
+//                std::this_thread::sleep_for(std::chrono::milliseconds(250));
+//                continue;
+//            }
+//
+//            program->PollActions();
+//            program->RenderFrame();
+//        }
 
         app->activity->vm->DetachCurrentThread();
     } catch (const std::exception& ex) {

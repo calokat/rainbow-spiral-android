@@ -1,5 +1,6 @@
 #include "CameraSystem.h"
 #include "TransformSystem.h"
+#include <glm/gtc/matrix_transform.hpp>
 void CameraSystem::CalculateViewMatrixRH(Camera& camera, Transform camTransform, bool transpose)
 {
 	glm::vec3 forward = TransformSystem::CalculateForward(&camTransform);
@@ -50,4 +51,8 @@ void CameraSystem::CalculateProjectionMatrixLH(Camera& camera, float aspect, boo
 	{
 		camera.projection = glm::perspectiveLH(camera.fieldOfView, aspect, camera.nearPlaneDistance, camera.farPlaneDistance);
 	}
+}
+
+Camera::Camera() {
+
 }

@@ -17,8 +17,8 @@
 # Author:
 #
 
-file(GLOB LOCAL_HEADERS "*.h")
-file(GLOB LOCAL_SOURCE "*.cpp")
+file(GLOB LOCAL_HEADERS "*.h" "AndroidAssetManager.h" "AndroidPlatform.h" "OpenGLAndroidContext.h" "OpenGLAPI.h" "MeshOpenGLRenderData.h")
+file(GLOB LOCAL_SOURCE "*.cpp" "AndroidAssetManager.cpp" "AndroidPlatform.cpp" "OpenGLAndroidContext.cpp" "OpenGLAPI.cpp")
 file(GLOB VULKAN_SHADERS "vulkan_shaders/*.glsl")
 
 # For including compiled shaders

@@ -1,3 +1,4 @@
+#pragma once
 namespace PE
 {
 	enum Platform { Win32, Web, Android, Linux };

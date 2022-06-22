@@ -1,6 +1,6 @@
 #pragma once
 #include "MeshRenderData.h"
-#include <GL/gl.h>
+#include <GLES3/gl3.h>
 
 class MeshOpenGLRenderData: public MeshRenderData
 {
