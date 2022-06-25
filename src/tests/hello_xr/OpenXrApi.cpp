@@ -8,6 +8,7 @@
 #include "xr_linear.h"
 #include <GLES3/gl32.h>
 #include <GLES3/gl3platform.h>
+
 OpenXrApi::OpenXrApi(IPlatform& plat, IGraphicsAPI& graph, PE::GraphicsAPI gApiType) : platformApi(plat), graphicsApi(graph), graphicsApiType(gApiType)
 {
 	Init();
@@ -15,6 +16,10 @@ OpenXrApi::OpenXrApi(IPlatform& plat, IGraphicsAPI& graph, PE::GraphicsAPI gApiT
 	InitializeXRSession();
 	InitializeActions();
 	CreateSwapchains();
+}
+
+bool OpenXrApi::IsSessionRunning() {
+	return m_sessionRunning;
 }
 
 void OpenXrApi::Frame(std::vector<RenderedObject> objects, OpenGLRenderSystem& renderSystem, const Transform& camTransform)
@@ -56,7 +61,7 @@ XrResult OpenXrApi::CreateXRInstance()
 	const std::vector<const char*> platformExtensions = std::vector<const char*>();
 	std::transform(platformExtensions.begin(), platformExtensions.end(), std::back_inserter(extensions),
 		[](const char* ext) { return ext; });
-	const std::vector<const char*> graphicsExtensions = { "XR_KHR_opengl_enable" };
+	const std::vector<const char*> graphicsExtensions = { XR_KHR_OPENGL_ES_ENABLE_EXTENSION_NAME };
 	std::transform(graphicsExtensions.begin(), graphicsExtensions.end(), std::back_inserter(extensions),
 		[](const char* ext) { return ext; });
 
@@ -89,12 +94,22 @@ void OpenXrApi::InitializeXRSystem()
 
 
 	// TODO: Put below code in separate plugin
-	PFN_xrGetOpenGLESGraphicsRequirementsKHR pfnGetOpenGLGraphicsRequirementsKHR = nullptr;
-	xrGetInstanceProcAddr(m_instance, "xrGetOpenGLGraphicsRequirementsKHR",
-		reinterpret_cast<PFN_xrVoidFunction*>(&pfnGetOpenGLGraphicsRequirementsKHR));
+	PFN_xrGetOpenGLESGraphicsRequirementsKHR pfnGetOpenGLESGraphicsRequirementsKHR = nullptr;
+	res = xrGetInstanceProcAddr(m_instance, "xrGetOpenGLESGraphicsRequirementsKHR",
+		reinterpret_cast<PFN_xrVoidFunction*>(&pfnGetOpenGLESGraphicsRequirementsKHR));
 
-	XrGraphicsRequirementsOpenGLESKHR graphicsRequirements{ XR_TYPE_GRAPHICS_REQUIREMENTS_OPENGL_KHR };
-	pfnGetOpenGLGraphicsRequirementsKHR(m_instance, m_systemId, &graphicsRequirements);
+	XrGraphicsRequirementsOpenGLESKHR graphicsRequirements{ XR_TYPE_GRAPHICS_REQUIREMENTS_OPENGL_ES_KHR };
+	pfnGetOpenGLESGraphicsRequirementsKHR(m_instance, m_systemId, &graphicsRequirements);
+
+	ksDriverInstance driverInstance{};
+	ksGpuQueueInfo queueInfo{};
+	ksGpuSurfaceColorFormat colorFormat{KS_GPU_SURFACE_COLOR_FORMAT_B8G8R8A8};
+	ksGpuSurfaceDepthFormat depthFormat{KS_GPU_SURFACE_DEPTH_FORMAT_D24};
+	ksGpuSampleCount sampleCount{KS_GPU_SAMPLE_COUNT_1};
+	if (!ksGpuWindow_Create(&window, &driverInstance, &queueInfo, 0, colorFormat, depthFormat, sampleCount, 640, 480, false)) {
+		throw ("Unable to create GL context");
+	}
+
 
 	GLint major = 0;
 	GLint minor = 0;
@@ -112,7 +127,9 @@ void OpenXrApi::InitializeXRSystem()
 	WinOpenGLContext& winGlContext = dynamic_cast<WinOpenGLContext&>(glApi.GetOpenGLContext());
 	m_graphicsBinding.hGLRC = winGlContext.GetContext();
 #elif defined(__ANDROID__)
-
+	m_graphicsBinding.display = window.display;
+	m_graphicsBinding.config = (EGLConfig)0;
+	m_graphicsBinding.context = window.context.context;
 #endif
 	// this was originally in InitializeResources() from hello_xr, but I think I only need this part of it
 	glGenFramebuffers(1, &m_swapchainFramebuffer);
@@ -293,7 +310,7 @@ void OpenXrApi::CreateSwapchains()
 		std::vector<XrSwapchainImageOpenGLESKHR> swapchainImageBuffer(imageCount);
 		std::vector<XrSwapchainImageBaseHeader*> swapchainImageBase;
 		for (XrSwapchainImageOpenGLESKHR& image : swapchainImageBuffer) {
-			image.type = XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_KHR;
+			image.type = XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_ES_KHR;
 			swapchainImageBase.push_back(reinterpret_cast<XrSwapchainImageBaseHeader*>(&image));
 		}
 
@@ -373,7 +390,9 @@ void OpenXrApi::HandleSessionStateChangedEvent(const XrEventDataSessionStateChan
 		assert(m_session != XR_NULL_HANDLE);
 		XrSessionBeginInfo sessionBeginInfo{ XR_TYPE_SESSION_BEGIN_INFO };
 		sessionBeginInfo.primaryViewConfigurationType = m_viewConfigType;
-		assert(XR_SUCCEEDED(xrBeginSession(m_session, &sessionBeginInfo)));
+		if (!m_sessionRunning) {
+			assert(XR_SUCCEEDED(xrBeginSession(m_session, &sessionBeginInfo)));
+		}
 		m_sessionRunning = true;
 		break;
 	}
@@ -532,7 +551,7 @@ bool OpenXrApi::RenderLayer(std::vector<XrCompositionLayerProjectionView>& proje
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
 
 		// Clear swapchain and depth buffer.
-		//glClearColor(DarkSlateGray[0], DarkSlateGray[1], DarkSlateGray[2], DarkSlateGray[3]);
+		glClearColor(0, 1, 0, 1);
 		glClearDepthf(1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 

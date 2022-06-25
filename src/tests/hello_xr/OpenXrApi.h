@@ -19,6 +19,7 @@
 #include "RenderedObject.h"
 #include "Transform.h"
 #include "xr_linear.h"
+#include "common/gfxwrapper_opengl.h"
 
 struct Swapchain {
     XrSwapchain handle;
@@ -48,6 +49,7 @@ class OpenXrApi
 public:
     OpenXrApi(IPlatform& plat, IGraphicsAPI& graph, PE::GraphicsAPI gApiType);
     void Frame(std::vector<RenderedObject> objects, OpenGLRenderSystem& renderSystem, const Transform& camTransform);
+    bool IsSessionRunning();
 private:
     XrResult Init();
     XrResult CreateXRInstance();
@@ -98,4 +100,6 @@ private:
     GraphicsAPI graphicsApiEnum;
     GLuint m_swapchainFramebuffer;
     std::map<uint32_t, uint32_t> m_colorToDepthMap;
+    ksGpuWindow window{};
+
 };
