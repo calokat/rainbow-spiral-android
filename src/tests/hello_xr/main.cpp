@@ -13,6 +13,11 @@
 #include "AndroidPlatform.h"
 #include "OpenGLAndroidContext.h"
 #include "OpenGLAPI.h"
+#include "MeshOpenGLRenderData.h"
+#include "MeshDeserializer.h"
+#include "TransformSystem.h"
+#include <chrono>
+
 #if defined(_WIN32)
 // Favor the high performance NVIDIA or AMD GPUs
 extern "C" {
@@ -219,15 +224,38 @@ void android_main(struct android_app* app) {
 //        platform.InitWindow();
         OpenGLAndroidContext glCtx = OpenGLAndroidContext(platform.GetDisplay(), platform.GetSurface());
         OpenGLAPI glApi(glCtx);
-        OpenGLRenderSystem renderSystem;
         OpenXrApi xr(platform, glApi, PE::GraphicsAPI::OpenGL);
+        OpenGLRenderSystem renderSystem(app->activity->assetManager);
+
+        std::vector<RenderedObject> objectsToRender(1);
+        RenderedObject& spiral = objectsToRender[0];
+        spiral.renderer.colorTint = { 1, 0, 1, 1 };
+        spiral.transform.scale = glm::vec3(5);
+        std::shared_ptr<Mesh> spiralMesh = std::make_shared<Mesh>();
+        spiralMesh->renderData = std::make_shared<MeshOpenGLRenderData>();
+        AAssetManager* assetManager = app->activity->assetManager;
+        AAsset* helixAsset = AAssetManager_open(assetManager, "helix.mesh", AASSET_MODE_UNKNOWN);
+        size_t helixBufferLength = AAsset_getLength(helixAsset);
+        std::vector<char> helixBuffer(helixBufferLength);
+        AAsset_read(helixAsset, helixBuffer.data(), helixBufferLength);
+        MeshDeserializer::DeserializeMesh(*spiralMesh, helixBuffer);
+        spiral.mesh = spiralMesh;
+        spiral.transform.orientation = glm::quat(glm::vec3(0, 0, glm::radians(90.0f)));
+        TransformSystem::CalculateWorldMatrix(&spiral.transform);
+        renderSystem.InstantiateRenderedObject(spiral);
 
 //        program->CreateInstance();
 //        program->InitializeSystem();
 //        program->InitializeSession();
 //        program->CreateSwapchains();
+        double elapsed_time_ms = 0;
+        float totalTime = 0;
 
-        while (app->destroyRequested == 0) {
+        while (app->destroyRequested == 0)
+        {
+            auto t_start = std::chrono::high_resolution_clock::now();
+            if (totalTime > 10) totalTime -= 10;
+            spiral.renderer.time = totalTime;
             // Read all pending events.
             for (;;) {
                 int events;
@@ -256,7 +284,11 @@ void android_main(struct android_app* app) {
 
 //            program->PollActions();
 //            program->RenderFrame();
-                xr.Frame(std::vector<RenderedObject>(), renderSystem, Transform());
+            spiral.transform.orientation = spiral.transform.orientation * glm::angleAxis((float)elapsed_time_ms / 1000, glm::vec3(0, 1, 0));
+            xr.Frame(objectsToRender, renderSystem, Transform());
+            auto t_end = std::chrono::high_resolution_clock::now();
+            elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end - t_start).count();
+            totalTime += (elapsed_time_ms / 1000.0f);
         }
 
         app->activity->vm->DetachCurrentThread();
