@@ -3,9 +3,9 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 
-OpenGLRenderSystem::OpenGLRenderSystem()
+OpenGLRenderSystem::OpenGLRenderSystem(AAssetManager* mngr)
 {
-    InitShaders();
+    InitShaders(mngr);
 }
 void OpenGLRenderSystem::InstantiateRenderedObject(RenderedObject& ro)
 {
@@ -36,12 +36,20 @@ void OpenGLRenderSystem::Draw(RenderedObject& ro)
     glDrawElements(GL_TRIANGLES, ro.mesh->rawIndices.size(), GL_UNSIGNED_INT, 0);
 }
 
-void OpenGLRenderSystem::InitShaders()
+void OpenGLRenderSystem::InitShaders(AAssetManager* mngr)
 {
     programs->programID = glCreateProgram();
-    programs->vertex = Shader("Shaders\\GLSL\\vertex-rainbow.glsl", GL_VERTEX_SHADER);
+    AAsset* vertexShaderAsset = AAssetManager_open(mngr, "Shaders/GLSL-ES/vertex-rainbow.glsl", AASSET_MODE_UNKNOWN);
+    std::vector<char> vertexShaderBuffer(AAsset_getLength(vertexShaderAsset));
+    AAsset_read(vertexShaderAsset, vertexShaderBuffer.data(), vertexShaderBuffer.size());
+    programs->vertex = Shader(vertexShaderBuffer.data(), GL_VERTEX_SHADER);
+    //    programs->vertex = Shader("Shaders\\GLSL\\vertex-rainbow.glsl", GL_VERTEX_SHADER);
     programs->vertex.Compile();
-    programs->fragment = Shader("Shaders\\GLSL\\fragment-rainbow.glsl", GL_FRAGMENT_SHADER);
+    AAsset* fragShaderAsset = AAssetManager_open(mngr, "Shaders/GLSL-ES/fragment-rainbow.glsl", AASSET_MODE_UNKNOWN);
+    std::vector<char> fragShaderBuffer(AAsset_getLength(fragShaderAsset));
+    AAsset_read(fragShaderAsset, fragShaderBuffer.data(), fragShaderBuffer.size());
+    programs->fragment = Shader(fragShaderBuffer.data(), GL_FRAGMENT_SHADER);
+//    programs->fragment = Shader("Shaders\\GLSL\\fragment-rainbow.glsl", GL_FRAGMENT_SHADER);
     programs->fragment.Compile();
     glAttachShader(programs->programID, programs->vertex.GetId());
     glAttachShader(programs->programID, programs->fragment.GetId());

@@ -30,6 +30,13 @@ Shader::Shader(std::string pathArg, GLint typeArg)
 	delete[] shaderSource;
 }
 
+Shader::Shader(const char *buffer, GLint typeArg)
+{
+	shaderType = typeArg;
+	id = glCreateShader(shaderType);
+	glShaderSource(id, 1, &buffer, 0);
+}
+
 void Shader::Compile()
 {
 	glCompileShader(id);
