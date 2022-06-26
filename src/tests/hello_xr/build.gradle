@@ -52,12 +52,20 @@ android {
         main {
             manifest.srcFile 'AndroidManifest.xml'
             res.srcDir 'android_resources'
+            assets {
+                srcDirs 'assets', 'src\\main\\assets'
+            }
         }
         Vulkan {
             res.srcDir 'android_resources/vulkan'
         }
         OpenGLES {
             res.srcDir 'android_resources/opengles'
+        }
+        OpenGLESDebug {
+            assets {
+                srcDirs 'src\\OpenGLESDebug\\assets'
+            }
         }
     }
 
