@@ -285,6 +285,7 @@ void android_main(struct android_app* app) {
 //            program->PollActions();
 //            program->RenderFrame();
             spiral.transform.orientation = spiral.transform.orientation * glm::angleAxis((float)elapsed_time_ms / 1000, glm::vec3(0, 1, 0));
+            TransformSystem::CalculateWorldMatrix(&spiral.transform);
             xr.Frame(objectsToRender, renderSystem, Transform());
             auto t_end = std::chrono::high_resolution_clock::now();
             elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end - t_start).count();
