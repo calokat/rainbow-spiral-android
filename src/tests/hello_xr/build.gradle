@@ -31,7 +31,7 @@ android {
     ndkVersion "21.4.7075529"
 
     defaultConfig {
-        applicationId "com.khronos.openxr.hello_xr"
+        applicationId "com.calokat.rainbow_spiral"
         // for Vulkan, need at least 24
         minSdkVersion 24
         compileSdkVersion 26
@@ -86,17 +86,17 @@ android {
     productFlavors {
         OpenGLES {
             dimension 'api'
-            applicationIdSuffix '.opengles'
+//            applicationIdSuffix '.opengles'
             externalNativeBuild.cmake.cppFlags '-DDEFAULT_GRAPHICS_PLUGIN_OPENGLES'
 
-            resValue "string", "app_name", "Hello XR (OpenGL ES)"
+            resValue "string", "app_name", "Rainbow Spiral"
         }
         Vulkan {
             dimension 'api'
             applicationIdSuffix '.vulkan'
             externalNativeBuild.cmake.cppFlags '-DDEFAULT_GRAPHICS_PLUGIN_VULKAN'
 
-            resValue "string", "app_name", "Hello XR (Vulkan)"
+            resValue "string", "app_name", "Rainbow Spiral"
         }
     }
 }
