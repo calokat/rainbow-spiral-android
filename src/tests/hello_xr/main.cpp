@@ -227,7 +227,7 @@ void android_main(struct android_app* app) {
         OpenXrApi xr(platform, glApi, PE::GraphicsAPI::OpenGL);
         OpenGLRenderSystem renderSystem(app->activity->assetManager);
 
-        std::vector<RenderedObject> objectsToRender(1);
+        std::vector<RenderedObject> objectsToRender(3);
         RenderedObject& spiral = objectsToRender[0];
         spiral.renderer.colorTint = { 1, 0, 1, 1 };
         spiral.transform.scale = glm::vec3(5);
@@ -244,6 +244,23 @@ void android_main(struct android_app* app) {
         TransformSystem::CalculateWorldMatrix(&spiral.transform);
         renderSystem.InstantiateRenderedObject(spiral);
 
+        RenderedObject& leftHand = objectsToRender[1];
+        RenderedObject& rightHand = objectsToRender[2];
+        std::shared_ptr<Mesh> cubeMesh = std::make_shared<Mesh>();
+        cubeMesh->renderData = std::make_shared<MeshOpenGLRenderData>();
+        AAsset* cubeAsset = AAssetManager_open(assetManager, "cube.mesh", AASSET_MODE_UNKNOWN);
+        size_t cubeBufferLength = AAsset_getLength(cubeAsset);
+        std::vector<char> cubeBuffer(cubeBufferLength);
+        AAsset_read(cubeAsset, cubeBuffer.data(), cubeBufferLength);
+        MeshDeserializer::DeserializeMesh(*cubeMesh, cubeBuffer);
+        leftHand.mesh = cubeMesh;
+        leftHand.transform.scale = glm::vec3(.2f);
+        TransformSystem::CalculateWorldMatrix(&leftHand.transform);
+        renderSystem.InstantiateRenderedObject(leftHand);
+        rightHand.mesh = cubeMesh;
+        rightHand.transform.scale = glm::vec3(.2f);
+        TransformSystem::CalculateWorldMatrix(&rightHand.transform);
+        renderSystem.InstantiateRenderedObject(rightHand);
 //        program->CreateInstance();
 //        program->InitializeSystem();
 //        program->InitializeSession();
@@ -286,7 +303,7 @@ void android_main(struct android_app* app) {
 //            program->RenderFrame();
             spiral.transform.orientation = spiral.transform.orientation * glm::angleAxis((float)elapsed_time_ms / 1000, glm::vec3(0, 1, 0));
             TransformSystem::CalculateWorldMatrix(&spiral.transform);
-            xr.Frame(objectsToRender, renderSystem, Transform());
+            xr.Frame(objectsToRender, renderSystem, Transform(), leftHand.transform, rightHand.transform);
             auto t_end = std::chrono::high_resolution_clock::now();
             elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end - t_start).count();
             totalTime += (elapsed_time_ms / 1000.0f);

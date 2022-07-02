@@ -8,7 +8,7 @@
 #include "xr_linear.h"
 #include <GLES3/gl32.h>
 #include <GLES3/gl3platform.h>
-
+#include "TransformSystem.h"
 OpenXrApi::OpenXrApi(IPlatform& plat, IGraphicsAPI& graph, PE::GraphicsAPI gApiType) : platformApi(plat), graphicsApi(graph), graphicsApiType(gApiType)
 {
 	Init();
@@ -22,15 +22,45 @@ bool OpenXrApi::IsSessionRunning() {
 	return m_sessionRunning;
 }
 
-void OpenXrApi::Frame(std::vector<RenderedObject> objects, OpenGLRenderSystem& renderSystem, const Transform& camTransform)
+void OpenXrApi::Frame(std::vector<RenderedObject> objects, OpenGLRenderSystem& renderSystem, const Transform& camTransform, Transform& leftHand, Transform& rightHand)
 {
 	PollEvents();
 	if (!m_sessionRunning) return;
 	XrFrameState frameState = BeginFrame();
 	LocateViews(frameState.predictedDisplayTime);
 	PollActions();
+	UpdateDevices(frameState.predictedDisplayTime, leftHand, rightHand);
 	CalculateCameraViews(camTransform);
 	RenderFrame(objects, renderSystem, frameState);
+}
+
+void OpenXrApi::UpdateDevices(XrTime predictedDisplayTime, Transform& leftHand, Transform& rightHand)
+{
+	XrSpaceLocation spaceLocation{ XR_TYPE_SPACE_LOCATION };
+	XrResult res = xrLocateSpace(inputState.handSpace[LEFT], m_appSpace, predictedDisplayTime, &spaceLocation);
+	if (XR_UNQUALIFIED_SUCCESS(res)) {
+		if ((spaceLocation.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT) != 0 &&
+			(spaceLocation.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT) != 0) {
+			XrVector3f posePos = spaceLocation.pose.position;
+			leftHand.position = glm::vec3(posePos.x, posePos.y, posePos.z);
+			XrQuaternionf poseQuat = spaceLocation.pose.orientation;
+			leftHand.orientation = glm::quat(poseQuat.w, poseQuat.x, poseQuat.y, poseQuat.z);
+			TransformSystem::CalculateWorldMatrix(&leftHand);
+		}
+	}
+
+	res = xrLocateSpace(inputState.handSpace[RIGHT], m_appSpace, predictedDisplayTime, &spaceLocation);
+	if (XR_UNQUALIFIED_SUCCESS(res)) {
+		if ((spaceLocation.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT) != 0 &&
+			(spaceLocation.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT) != 0) {
+			XrVector3f posePos = spaceLocation.pose.position;
+			rightHand.position = glm::vec3(posePos.x, posePos.y, posePos.z);
+			XrQuaternionf poseQuat = spaceLocation.pose.orientation;
+			rightHand.orientation = glm::quat(poseQuat.w, poseQuat.x, poseQuat.y, poseQuat.z);
+			TransformSystem::CalculateWorldMatrix(&rightHand);
+		}
+	}
+
 }
 
 XrResult OpenXrApi::Init()

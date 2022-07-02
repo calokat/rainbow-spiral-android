@@ -48,7 +48,7 @@ class OpenXrApi
 {
 public:
     OpenXrApi(IPlatform& plat, IGraphicsAPI& graph, PE::GraphicsAPI gApiType);
-    void Frame(std::vector<RenderedObject> objects, OpenGLRenderSystem& renderSystem, const Transform& camTransform);
+    void Frame(std::vector<RenderedObject> objects, OpenGLRenderSystem& renderSystem, const Transform& camTransform, Transform& leftHand, Transform& rightHand);
     bool IsSessionRunning();
 private:
     XrResult Init();
@@ -68,6 +68,7 @@ private:
     void RenderFrame(std::vector<RenderedObject> objects, OpenGLRenderSystem& renderSystem, XrFrameState frameState);
     uint32_t GetDepthTexture(uint32_t colorTexture);
     bool RenderLayer(std::vector<XrCompositionLayerProjectionView>& projectionLayerViews, XrCompositionLayerProjection& layer, std::vector<RenderedObject> objects, OpenGLRenderSystem& renderSystem);
+    void UpdateDevices(XrTime predictedDisplayTime, Transform& leftHand, Transform& rightHand);
     XrInstance m_instance{ XR_NULL_HANDLE };
     XrEnvironmentBlendMode m_environmentBlendMode;
     XrSystemId m_systemId;
@@ -92,6 +93,7 @@ private:
     XrGraphicsBindingOpenGLWin32KHR m_graphicsBinding{ XR_TYPE_GRAPHICS_BINDING_OPENGL_WIN32_KHR };
 #elif defined(__ANDROID__)
     XrGraphicsBindingOpenGLESAndroidKHR m_graphicsBinding{ XR_TYPE_GRAPHICS_BINDING_OPENGL_ES_ANDROID_KHR };
+    ksGpuWindow window{};
 #endif
     IPlatform& platformApi;
     IGraphicsAPI& graphicsApi;
@@ -100,6 +102,4 @@ private:
     GraphicsAPI graphicsApiEnum;
     GLuint m_swapchainFramebuffer;
     std::map<uint32_t, uint32_t> m_colorToDepthMap;
-    ksGpuWindow window{};
-
 };
