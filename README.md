@@ -1,2 +1,2 @@
 # rainbow-spiral-android
-A demo project I made for standalone VR headsets running Android.
+A demo project I made for standalone VR headsets running Android. Based on the hello_xr template from the [https://github.com/KhronosGroup/OpenXR-SDK-Source]OpenXR repo.
